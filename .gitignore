@@ -1,0 +1,22 @@
+# أسرار — لا تُرفع أبداً (توكن تيليجرام + مفتاح NVIDIA)
+.env
+.env.*
+!.env.example
+
+# اعتماديات
+node_modules/
+
+# مخرجات التشغيل اليومية
+jobs-*.json
+api-jobs-*.json
+job-links-*.txt
+seen-jobs.json
+posted-jobs.json
+
+# لقطات صفحات الحظر ومخرجات التشخيص
+*.png
+api-jobs.xml
+
+# سجلات ومؤقتات
+*.log
+.DS_Store
