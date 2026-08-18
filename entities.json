@@ -1,0 +1,504 @@
+[
+  {
+    "name_ar": "الشركة الوطنية للإسكان",
+    "name_en": "NHC",
+    "type": "شركة حكومية",
+    "slugs": [
+      "national-housing-company-nhc"
+    ],
+    "slug": "national-housing-company-nhc",
+    "company_id": "13284563",
+    "linkedin_name": "NHC",
+    "open_jobs": 5,
+    "status": "يعمل"
+  },
+  {
+    "name_ar": "روشن",
+    "name_en": "ROSHN",
+    "type": "صندوق الاستثمارات العامة",
+    "slugs": [
+      "roshnksa"
+    ],
+    "slug": "roshnksa",
+    "company_id": "30741333",
+    "linkedin_name": "ROSHN l روشن",
+    "open_jobs": 10,
+    "status": "يعمل"
+  },
+  {
+    "name_ar": "نيوم",
+    "name_en": "NEOM",
+    "type": "صندوق الاستثمارات العامة",
+    "slugs": [
+      "neom"
+    ],
+    "slug": "neom",
+    "company_id": "899400",
+    "linkedin_name": "NEOM",
+    "open_jobs": 0,
+    "status": "لا وظائف منشورة حالياً"
+  },
+  {
+    "name_ar": "البحر الأحمر الدولية",
+    "name_en": "Red Sea Global",
+    "type": "صندوق الاستثمارات العامة",
+    "slugs": [
+      "red-sea-global",
+      "redseaglobal"
+    ],
+    "slug": "red-sea-global",
+    "company_id": "18562233",
+    "linkedin_name": "Red Sea Global",
+    "open_jobs": 10,
+    "status": "يعمل"
+  },
+  {
+    "name_ar": "القدية",
+    "name_en": "Qiddiya",
+    "type": "صندوق الاستثمارات العامة",
+    "slugs": [
+      "qiddiya",
+      "qiddiya-investment-company"
+    ],
+    "slug": "qiddiya",
+    "company_id": "11713431",
+    "linkedin_name": "Qiddiya",
+    "open_jobs": 10,
+    "status": "يعمل"
+  },
+  {
+    "name_ar": "الدرعية",
+    "name_en": "Diriyah Company",
+    "type": "صندوق الاستثمارات العامة",
+    "slugs": [
+      "diriyah-square",
+      "dgda",
+      "diriyahgate",
+      "diriyah",
+      "diriyah-co"
+    ],
+    "company_id": "79799061",
+    "slug": "diriyah-square",
+    "linkedin_name": "Diriyah Square",
+    "open_jobs": 0,
+    "status": "لا وظائف منشورة حالياً"
+  },
+  {
+    "name_ar": "سدايا",
+    "name_en": "SDAIA",
+    "type": "هيئة حكومية",
+    "slugs": [
+      "sdaia-ksa"
+    ],
+    "slug": "sdaia-ksa",
+    "company_id": "36983473",
+    "linkedin_name": "SDAIA",
+    "open_jobs": 0,
+    "status": "لا وظائف منشورة حالياً"
+  },
+  {
+    "name_ar": "الهيئة الوطنية للأمن السيبراني",
+    "name_en": "National Cybersecurity Authority",
+    "type": "هيئة حكومية",
+    "slugs": [
+      "nca-sa",
+      "national-cybersecurity-authority"
+    ],
+    "slug": "national-cybersecurity-authority",
+    "company_id": "18763433",
+    "linkedin_name": "National Cybersecurity Authority",
+    "open_jobs": 0,
+    "status": "لا وظائف منشورة حالياً"
+  },
+  {
+    "name_ar": "علم",
+    "name_en": "Elm Company",
+    "type": "صندوق الاستثمارات العامة",
+    "slugs": [
+      "elm-company",
+      "elmcompany"
+    ],
+    "slug": "elm-company",
+    "company_id": "71996297",
+    "linkedin_name": "ELM Company",
+    "open_jobs": 0,
+    "status": "لا وظائف منشورة حالياً"
+  },
+  {
+    "name_ar": "ثقة",
+    "name_en": "Thiqah",
+    "type": "شركة حكومية",
+    "slugs": [
+      "thiqah",
+      "thiqah-business-services"
+    ],
+    "slug": "thiqah",
+    "company_id": "280962",
+    "linkedin_name": "ثقة - منصة المحتوى الإداري العربي",
+    "open_jobs": 0,
+    "status": "لا وظائف منشورة حالياً"
+  },
+  {
+    "name_ar": "تحكم",
+    "name_en": "Tahakom",
+    "type": "شركة حكومية",
+    "slugs": [
+      "tahakom",
+      "tahakom-sa"
+    ],
+    "slug": "tahakom",
+    "company_id": "13204386",
+    "linkedin_name": "TAHAKOM",
+    "open_jobs": 0,
+    "status": "لا وظائف منشورة حالياً"
+  },
+  {
+    "name_ar": "تكامل",
+    "name_en": "Takamol Holding",
+    "type": "شركة حكومية",
+    "slugs": [
+      "takamol-holding",
+      "takamolholding"
+    ],
+    "slug": "takamol-holding",
+    "company_id": "91711742",
+    "linkedin_name": "Takamol Holding",
+    "open_jobs": 0,
+    "status": "لا وظائف منشورة حالياً"
+  },
+  {
+    "name_ar": "منشآت",
+    "name_en": "Monshaat",
+    "type": "هيئة حكومية",
+    "slugs": [
+      "monshaat",
+      "monshaatsa"
+    ],
+    "slug": "monshaatsa",
+    "company_id": "16173060",
+    "linkedin_name": "MonshaatSA",
+    "open_jobs": 0,
+    "status": "لا وظائف منشورة حالياً"
+  },
+  {
+    "name_ar": "نوبكو",
+    "name_en": "NUPCO",
+    "type": "شركة حكومية",
+    "slugs": [
+      "nupcosa",
+      "national-unified-procurement-company",
+      "nupco-company"
+    ],
+    "company_id": null,
+    "status": "لم يُعثر على الصفحة"
+  },
+  {
+    "name_ar": "الخطوط الحديدية السعودية",
+    "name_en": "Saudi Arabia Railways (SAR)",
+    "type": "شركة حكومية",
+    "slugs": [
+      "saudi-arabia-railways",
+      "sar-sa",
+      "saudirailways",
+      "saudi-railways"
+    ],
+    "company_id": null,
+    "status": "لم يُعثر على الصفحة"
+  },
+  {
+    "name_ar": "البريد السعودي | سبل",
+    "name_en": "Saudi Post | SPL",
+    "type": "شركة حكومية",
+    "slugs": [
+      "saudipost",
+      "spl-sa",
+      "saudi-post-spl",
+      "splksa"
+    ],
+    "company_id": "42927311",
+    "slug": "saudipost",
+    "linkedin_name": "‏Saudi Post",
+    "open_jobs": 0,
+    "status": "لا وظائف منشورة حالياً"
+  },
+  {
+    "name_ar": "أرامكو السعودية",
+    "name_en": "Saudi Aramco",
+    "type": "شركة حكومية",
+    "slugs": [
+      "saudi-aramco",
+      "aramco"
+    ],
+    "slug": "saudi-aramco",
+    "company_id": "5098",
+    "linkedin_name": "aramco",
+    "open_jobs": 0,
+    "status": "لا وظائف منشورة حالياً"
+  },
+  {
+    "name_ar": "سابك",
+    "name_en": "SABIC",
+    "type": "صندوق الاستثمارات العامة",
+    "slugs": [
+      "sabic"
+    ],
+    "slug": "sabic",
+    "company_id": "165806",
+    "linkedin_name": "SABIC",
+    "open_jobs": 0,
+    "status": "لا وظائف منشورة حالياً"
+  },
+  {
+    "name_ar": "معادن",
+    "name_en": "Ma'aden",
+    "type": "صندوق الاستثمارات العامة",
+    "slugs": [
+      "maaden",
+      "saudi-arabian-mining-company-maaden"
+    ],
+    "slug": "maaden",
+    "company_id": "76119",
+    "linkedin_name": "Maaden",
+    "open_jobs": 10,
+    "status": "يعمل"
+  },
+  {
+    "name_ar": "الشركة السعودية للكهرباء",
+    "name_en": "Saudi Electricity Company",
+    "type": "شركة حكومية",
+    "slugs": [
+      "saudielectricity",
+      "saudi-electricity",
+      "sec-sa",
+      "saudi-electricity-co"
+    ],
+    "company_id": "341098",
+    "slug": "saudielectricity",
+    "linkedin_name": "‏السعودية للطاقة‏",
+    "open_jobs": 0,
+    "status": "لا وظائف منشورة حالياً"
+  },
+  {
+    "name_ar": "الاتصالات السعودية",
+    "name_en": "stc",
+    "type": "صندوق الاستثمارات العامة",
+    "slugs": [
+      "stc",
+      "saudi-telecom-company"
+    ],
+    "slug": "stc",
+    "company_id": "166151",
+    "linkedin_name": "stc",
+    "open_jobs": 4,
+    "status": "يعمل"
+  },
+  {
+    "name_ar": "سيرار من stc",
+    "name_en": "Sirar by stc",
+    "type": "أمن سيبراني",
+    "slugs": [
+      "sirar-by-stc",
+      "sirarbystc"
+    ],
+    "slug": "sirarbystc",
+    "company_id": "71190677",
+    "linkedin_name": "sirar by stc",
+    "open_jobs": 2,
+    "status": "يعمل"
+  },
+  {
+    "name_ar": "حلول من stc",
+    "name_en": "solutions by stc",
+    "type": "شركة تابعة",
+    "slugs": [
+      "solutions-by-stc",
+      "stc-solutions"
+    ],
+    "slug": "stc-solutions",
+    "company_id": "5000445",
+    "linkedin_name": "STC Solutions",
+    "open_jobs": 0,
+    "status": "لا وظائف منشورة حالياً"
+  },
+  {
+    "name_ar": "صندوق الاستثمارات العامة",
+    "name_en": "Public Investment Fund",
+    "type": "صندوق سيادي",
+    "slugs": [
+      "publicinvestmentfund",
+      "pif"
+    ],
+    "slug": "pif",
+    "company_id": "2147466",
+    "linkedin_name": "PIF",
+    "open_jobs": 0,
+    "status": "لا وظائف منشورة حالياً"
+  },
+  {
+    "name_ar": "طيران الرياض",
+    "name_en": "Riyadh Air",
+    "type": "صندوق الاستثمارات العامة",
+    "slugs": [
+      "riyadhair",
+      "riyadh-air"
+    ],
+    "slug": "riyadhair",
+    "company_id": "87119910",
+    "linkedin_name": "Riyadh Air",
+    "open_jobs": 10,
+    "status": "يعمل"
+  },
+  {
+    "name_ar": "الخطوط السعودية",
+    "name_en": "Saudia",
+    "type": "شركة حكومية",
+    "slugs": [
+      "saudia",
+      "saudi-arabian-airlines"
+    ],
+    "slug": "saudia",
+    "company_id": "18827999",
+    "linkedin_name": "saudia",
+    "open_jobs": 0,
+    "status": "لا وظائف منشورة حالياً"
+  },
+  {
+    "name_ar": "علات",
+    "name_en": "Alat",
+    "type": "صندوق الاستثمارات العامة",
+    "slugs": [
+      "alat",
+      "alatglobal"
+    ],
+    "slug": "alat",
+    "company_id": "100196882",
+    "linkedin_name": "Alat",
+    "open_jobs": 0,
+    "status": "لا وظائف منشورة حالياً"
+  },
+  {
+    "name_ar": "سير",
+    "name_en": "Ceer",
+    "type": "صندوق الاستثمارات العامة",
+    "slugs": [
+      "ceer",
+      "ceermotors"
+    ],
+    "slug": "ceer",
+    "company_id": "27182373",
+    "linkedin_name": "CEER",
+    "open_jobs": 0,
+    "status": "لا وظائف منشورة حالياً"
+  },
+  {
+    "name_ar": "التعاونية",
+    "name_en": "Tawuniya",
+    "type": "شبه حكومي",
+    "slugs": [
+      "tawuniya"
+    ],
+    "slug": "tawuniya",
+    "company_id": "296598",
+    "linkedin_name": "Tawuniya",
+    "open_jobs": 2,
+    "status": "يعمل"
+  },
+  {
+    "name_ar": "البنك المركزي السعودي",
+    "name_en": "Saudi Central Bank (SAMA)",
+    "type": "جهة تنظيمية",
+    "slugs": [
+      "saudi-central-bank",
+      "sama",
+      "saudiarabianmonetaryauthority"
+    ],
+    "company_id": "1880479",
+    "slug": "sama",
+    "linkedin_name": "SAMA",
+    "open_jobs": 0,
+    "status": "لا وظائف منشورة حالياً"
+  },
+  {
+    "name_ar": "هيئة السوق المالية",
+    "name_en": "Capital Market Authority",
+    "type": "جهة تنظيمية",
+    "slugs": [
+      "cma-sa",
+      "capital-market-authority"
+    ],
+    "slug": "capital-market-authority",
+    "company_id": "38812",
+    "linkedin_name": "Capital Market Authority",
+    "open_jobs": 0,
+    "status": "لا وظائف منشورة حالياً"
+  },
+  {
+    "name_ar": "المدن الصناعية | مدن",
+    "name_en": "MODON",
+    "type": "هيئة حكومية",
+    "slugs": [
+      "modon",
+      "modonsa"
+    ],
+    "slug": "modon",
+    "company_id": "28712415",
+    "linkedin_name": "Modon",
+    "open_jobs": 0,
+    "status": "لا وظائف منشورة حالياً"
+  },
+  {
+    "name_ar": "الشركة السعودية للاستثمار في إعادة التدوير",
+    "name_en": "SIRC",
+    "type": "صندوق الاستثمارات العامة",
+    "slugs": [
+      "saudi-investment-recycling-company-sirc"
+    ],
+    "slug": "saudi-investment-recycling-company-sirc",
+    "company_id": "18904909",
+    "linkedin_name": "‏Saudi Investment Recycling Company (SIRC)‏",
+    "open_jobs": 0,
+    "status": "لا وظائف منشورة حالياً"
+  },
+  {
+    "name_ar": "المدفوعات السعودية",
+    "name_en": "Saudi Payments",
+    "type": "شركة حكومية",
+    "slugs": [
+      "saudi-payments",
+      "saudipayments"
+    ],
+    "slug": "saudi-payments",
+    "company_id": "2249405",
+    "linkedin_name": "SAUDI PAYMENTS",
+    "open_jobs": 0,
+    "status": "لا وظائف منشورة حالياً"
+  },
+  {
+    "name_ar": "موبايلي",
+    "name_en": "Mobily",
+    "type": "شبه حكومي",
+    "slugs": [
+      "mobily",
+      "etihad-etisalat-mobily"
+    ],
+    "slug": "mobily",
+    "company_id": "8676",
+    "linkedin_name": "Mobily",
+    "open_jobs": 0,
+    "status": "لا وظائف منشورة حالياً"
+  },
+  {
+    "name_ar": "زين السعودية",
+    "name_en": "Zain KSA",
+    "type": "شبه حكومي",
+    "slugs": [
+      "zain-ksa",
+      "zainksa"
+    ],
+    "slug": "zain-ksa",
+    "company_id": "2763827",
+    "linkedin_name": "Zain KSA",
+    "open_jobs": 0,
+    "status": "لا وظائف منشورة حالياً"
+  }
+]

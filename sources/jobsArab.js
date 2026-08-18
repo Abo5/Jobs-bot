@@ -23,8 +23,9 @@ const HEADERS = {
   Accept: 'application/rss+xml, application/xml, text/xml'
 };
 
-// تخصصات الموقع اللي تهمّنا (تقنية + إعلام) — بقية التخصصات عمالية/طبية.
-const PROFESSIONS = ['تكنولوجيا-وحاسب', 'اعلام-وصحافة'];
+// تخصص واحد فقط بعد تضييق النطاق لـQA البرمجيات (2026-08-08): خلاصة 'اعلام-وصحافة'
+// انحذفت لأن الإعلام خرج من النطاق، وخلاصات الجودة بالموقع كلها إنشاءات/مصانع.
+const PROFESSIONS = ['تكنولوجيا-وحاسب'];
 
 const MAX_PER_FEED = Number(process.env.JOBS_ARAB_PER_FEED || 25);
 // الموقع عنده حد معدل صارم: 16 طلب متتالي بفاصل 400ms رجّعوا 429. نهدّي أكثر،
@@ -96,6 +97,137 @@ function matchesKeyword(job, keyword) {
   const words = String(keyword).toLowerCase().split(/\s+/).filter(Boolean);
   const hay = `${job.job_title} ${job.description}`.toLowerCase();
   return words.every(w => hay.includes(w));
+}
+
+/* ===================== إثراء من صفحة الوظيفة ===================== */
+// خلاصة RSS ناقصة: ما فيها اسم المعلن ولا نوع الدوام ولا الراتب، والمدينة
+// نخمّنها بـregex من النص. لكن صفحة الوظيفة نفسها فيها JSON-LD كامل
+// (schema.org JobPosting) فيه كل هذي الحقول منظّمة ودقيقة.
+//
+// نقرأ JSON-LD لا نكشط HTML — أمتن، ولأن الموقع يغيّر تصميمه دون تغيير الـschema.
+//
+// ملاحظة: بيانات الاتصال (إيميل/جوال) محمية بكابتشا صورة + honeypot ولا تُعرض
+// إلا بعد تحقق بشري — ما نلمسها. الرابط يبقى في الرسالة للتقديم.
+const DETAIL_DELAY_MS = Number(process.env.JOBS_ARAB_DETAIL_DELAY_MS || 2000);
+const DETAIL_MAX = Number(process.env.JOBS_ARAB_DETAIL_MAX || 30);
+
+const EMPLOYMENT_AR = {
+  FULL_TIME: 'دوام كامل', PART_TIME: 'دوام جزئي', CONTRACTOR: 'عقد',
+  TEMPORARY: 'مؤقت', INTERN: 'تدريب', VOLUNTEER: 'تطوع', OTHER: 'أخرى'
+};
+
+function extractJobPosting(html) {
+  const blocks = html.match(/<script[^>]*type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi) || [];
+  for (const b of blocks) {
+    const raw = b.replace(/^[\s\S]*?>/, '').replace(/<\/script>$/i, '').trim();
+    let data;
+    try { data = JSON.parse(raw); } catch { continue; }
+    // الموقع يلفّ كل شي في @graph؛ ندعم الشكلين والمصفوفة
+    const nodes = data['@graph'] || (Array.isArray(data) ? data : [data]);
+    const jp = nodes.find(n => n && n['@type'] === 'JobPosting');
+    if (jp) return jp;
+  }
+  return null;
+}
+
+// بديل لما JSON-LD ما يكون موجود: الوظائف الأقدم/المنتهية يحذف الموقع عنها عقدة
+// JobPosting (مطلوب من جوجل عند انتهاء الإعلان) لكن جدول dt/dd يبقى في HTML.
+const LABEL_MAP = {
+  'المعلن / الشركة': 'company',
+  'نوع الوظيفة': 'job_type',
+  'المرتب': 'salary',
+  'القسم': 'section',
+  'مكان العمل': 'city'
+};
+
+function extractFromHtmlTable(html) {
+  const rows = [...html.matchAll(/<dt class="job-details-label">([\s\S]*?)<\/dt>\s*<dd class="job-details-value">([\s\S]*?)<\/dd>/g)];
+  if (!rows.length) return null;
+  const out = {};
+  for (const [, rawK, rawV] of rows) {
+    const key = LABEL_MAP[stripHtml(rawK)];
+    if (key) out[key] = stripHtml(rawV);
+  }
+  return Object.keys(out).length ? out : null;
+}
+
+function mergeHtmlDetail(job, t) {
+  return {
+    ...job,
+    company: t.company || job.company,
+    location: t.city ? `${t.city} - السعودية` : job.location,
+    job_type: t.job_type || '',
+    salary: t.salary || job.salary,
+    section: t.section || ''
+  };
+}
+
+function mergeDetail(job, jp) {
+  const org = jp.hiringOrganization?.name || '';
+  const loc = jp.jobLocation?.address || {};
+  const city = jp.jobLocation?.name || loc.addressLocality || '';
+  const region = loc.addressRegion || '';
+  const types = [].concat(jp.employmentType || []).map(t => EMPLOYMENT_AR[t] || t).filter(Boolean);
+
+  // الوصف عند هذا الموقع يحتوي غالباً سطر "الشروط:" أصلاً، وqualifications تعيده
+  // بصياغة مختصرة. نضيفها فقط لو فيها معلومة جديدة فعلاً (تفادي تكرار داخل الرسالة).
+  const desc = stripHtml(jp.description);
+  const quals = stripHtml(jp.qualifications);
+  const norm = s => s.replace(/[\s\-–—:،.]/g, '');
+  const qualsAdd = quals && !norm(desc).includes(norm(quals).slice(0, 40));
+  const parts = [desc, qualsAdd ? `الشروط: ${quals}` : ''].filter(Boolean);
+
+  return {
+    ...job,
+    company: org || job.company,
+    location: city ? [city, region, 'السعودية'].filter(Boolean).join(' - ') : job.location,
+    job_type: types.join(' / ') || '',
+    salary: stripHtml(jp.jobBenefits) || job.salary,
+    section: jp.occupationalCategory || '',
+    description: (parts.join(' — ') || job.description).slice(0, 700),
+    posted_date: jp.datePosted ? new Date(jp.datePosted).toISOString() : job.posted_date,
+    valid_through: jp.validThrough || ''
+  };
+}
+
+/**
+ * يثري وظائف jobs-arab بحقول صفحة الوظيفة (JSON-LD).
+ * يُنادى بعد الفلترة عشان نجيب صفحات الوظائف الباقية فقط لا كل شي.
+ * @param {Array} jobs وظائف من fetchJobsArab
+ * @returns {Promise<Array>} نفس المصفوفة بحقول مُثراة (اللي يفشل يبقى كما هو)
+ */
+export async function enrichJobsArab(jobs = []) {
+  const targets = jobs.filter(j => /jobs-arab\.com/.test(j.job_url || '')).slice(0, DETAIL_MAX);
+  if (!targets.length) return jobs;
+
+  const byUrl = new Map();
+  let ok = 0;
+
+  console.log(`   🔎 [jobs-arab] إثراء ${targets.length} وظيفة من صفحاتها...`);
+  for (const j of targets) {
+    try {
+      const { data } = await axios.get(j.job_url, {
+        timeout: 20000, headers: { ...HEADERS, Accept: 'text/html' }, responseType: 'text'
+      });
+      const html = String(data);
+      const jp = extractJobPosting(html);
+      if (jp) {
+        byUrl.set(j.job_url, mergeDetail(j, jp)); ok++;
+      } else {
+        const t = extractFromHtmlTable(html);
+        if (t) { byUrl.set(j.job_url, mergeHtmlDetail(j, t)); ok++; }
+      }
+    } catch (e) {
+      if (e.response?.status === 429) {
+        console.warn('   ⚠️ [jobs-arab] 429 عند الإثراء — نوقف ونكمل بالمتوفر');
+        break;
+      }
+    }
+    await sleep(DETAIL_DELAY_MS);
+  }
+
+  console.log(`   ✓ [jobs-arab] أُثريت ${ok}/${targets.length} وظيفة (شركة + مدينة + نوع دوام + راتب)`);
+  return jobs.map(j => byUrl.get(j.job_url) || j);
 }
 
 /**

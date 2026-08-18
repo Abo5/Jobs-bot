@@ -20,3 +20,4 @@ api-jobs.xml
 # سجلات ومؤقتات
 *.log
 .DS_Store
+.li-cooldown
