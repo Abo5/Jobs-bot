@@ -21,3 +21,7 @@ api-jobs.xml
 *.log
 .DS_Store
 .li-cooldown
+
+# ملفات vim المؤقتة
+*.swp
+*.swo
