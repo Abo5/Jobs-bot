@@ -18,7 +18,9 @@ import pLimit from 'p-limit';
 import { callAI, safeJsonParse } from './lib/ai.js';
 import { sendJobsToTelegram } from './lib/telegram.js';
 import { isSaudiLocation } from './lib/saudi.js';
-import { passesSectorRule, isGraduateProgram } from './lib/sectors.js';
+import {
+  passesSectorRule, isGraduateProgram, isAdmissionTitle, isAdmissionAnnouncement, categoryForJob
+} from './lib/sectors.js';
 import { verifySoftwareQa } from './lib/qaClassifier.js';
 import { API_SOURCES, GLOBAL_REMOTE_SOURCES } from './sources/apiSources.js';
 import { scrapeNaukrigulf } from './sources/naukrigulf.js';
@@ -29,7 +31,7 @@ import { fetchLinkedinJobs } from './sources/linkedin.js';
 import { fetchEntityJobs } from './sources/entityJobs.js';
 import { fetchJobsArab, enrichJobsArab } from './sources/jobsArab.js';
 import { fetchYahooLinks } from './sources/yahooSearch.js';
-import { buildFallbackImportant } from './lib/importantFallback.js';
+import { buildFallbackImportant, fallbackDescriptionFor } from './lib/importantFallback.js';
 import { buildSmartQueries } from './lib/queryBuilder.js';
 import { getApplyUrl } from './lib/applyLink.js';
 import { SeenStore } from './lib/seenStore.js';
@@ -131,21 +133,57 @@ const CITIES_PER_ROLE = Number(process.env.SMART_QUERY_CITIES_PER_ROLE || 2);
 const GOOGLE_QUERIES = buildSmartQueries(JOB_KEYWORDS, { citiesPerRole: CITIES_PER_ROLE });
 console.log(`🧠 Built ${GOOGLE_QUERIES.length} smart Google queries from ${JOB_KEYWORDS.length} roles (${CITIES_PER_ROLE} cities/role)`);
 
+/* ---------- استعلامات فتح القبول والتسجيل (فئة 2026-08-18) ---------- */
+// إعلانات فتح باب القبول الجامعي (بكالوريوس · دبلوم · تجسير) والتجنيد والتوظيف
+// العسكري والمدني وتمهير — تُبحث في ياهو وwadhefa فقط عمداً: لنكدإن يبقى محميّاً
+// بتدويره التقني، وهذي المصادر لا تكلّف حد لنكدإن إطلاقاً. النتائج تمرّ عبر
+// استخراج AI فيُثبت is_government/is_admission من نص الإعلان نفسه.
+const ADMISSION_QUERIES = (process.env.ADMISSION_QUERIES || [
+  'فتح باب القبول والتسجيل',
+  'وظائف عسكرية السعودية',
+  'التجنيد وزارة الدفاع',
+  'بكالوريوس تجسير',
+  'برنامج دبلوم',
+  'تمهير',
+  'وظائف مدنية',
+  'منح دراسية سعودية'
+].join('|')).split('|').map(s => s.trim()).filter(Boolean);
+console.log(`🎓 استعلامات فتح القبول/التسجيل: ${ADMISSION_QUERIES.length} (ياهو + wadhefa)`);
+
 /* ---------- نطاق القبول الموحّد ---------- */
-// المجالات الأربعة لكل المصادر، *بالإضافة* إلى برامج الخريجين والتدريب والابتعاث
-// لكن من الجهات المُراقَبة وحدها (source === 'linkedin-entity'). ليش التقييد:
-// مسمّيات البرامج بلا إشارة تقنية، فقبولها من أي مصدر كان بيغرق القناة بإعلانات
-// تدريب عامة لا علاقة لها بمجالك.
+// المجالات الأربعة لكل المصادر، *بالإضافة إلى* (بطلب المالك 2026-08-18):
+//   ١) فتح القبول والتسجيل — جامعات (بكالوريوس · دبلوم · تجسير) · منح وابتعاث ·
+//      تمهير · حملات التوظيف العسكرية/المدنية والتجنيد. بالمسمّى الصريح من أي
+//      مصدر، وبعبارات الإعلان الرسمية من الجهات المُراقَبة (linkedin-entity).
+//   ٢) الوظائف الحكومية — أي وظيفة يثبت الـAI أنها حكومية (is_government=true)،
+//      استثناءً من قاعدة المجالات الأربعة.
+//   ٣) برامج الجهات — برامج الخريجين والتدريب والابتعاث من الجهات المُراقَبة
+//      وحدها، لأن مسمّياتها بلا إشارة تقنية فقبولها من أي مصدر بيغرق القناة.
 function inTargetScope(j) {
   const fields = {
     company: j.company, sector: j.sector, title: j.job_title, titleAr: j.job_title_ar,
     description: j.description, descriptionAr: j.description_ar, requirements: j.requirements
   };
   if (passesSectorRule(fields)) return true;
+
+  // فتح قبول/تسجيل — مسمّى صريح من أي مصدر
+  if (isAdmissionTitle(j.job_title, j.job_title_ar)) {
+    j.is_admission = true;
+    return true;
+  }
+  // من الجهات المُراقَبة فقط: عبارة الإعلان الرسمية تقبل حتى لو وردت بالوصف
+  if (j.source === 'linkedin-entity' &&
+      isAdmissionAnnouncement(j.job_title, j.job_title_ar, j.description, j.description_ar)) {
+    j.is_admission = true;
+    return true;
+  }
+  // برامج الجهات المُراقَبة (خريجين · تدريب · ابتعاث)
   if (j.source === 'linkedin-entity' && isGraduateProgram(j.job_title, j.job_title_ar)) {
     j.is_program = true;              // نوسمها عشان تبان في الرسالة والتقرير
     return true;
   }
+  // استثناء الوظائف الحكومية (يُثبته الـAI من نص الإعلان لا من المصدر)
+  if (j.is_government === true) return true;
   return false;
 }
 
@@ -283,7 +321,8 @@ const runStats = { collected: null, inScope: null, stale: null, aiRejected: 0 };
   if (ENABLE_YAHOO) {
     console.log('🔎 Searching via Yahoo (Google replacement)...');
     try {
-      const yahooLinks = await fetchYahooLinks(GOOGLE_QUERIES);
+      // استعلامات تقنية + استعلامات فتح القبول/التسجيل (عسكرية · جامعات · تمهير)
+      const yahooLinks = await fetchYahooLinks([...GOOGLE_QUERIES, ...ADMISSION_QUERIES]);
       browserLinks = [...new Set([...browserLinks, ...yahooLinks])];
     } catch (e) {
       console.warn(`⚠️ [yahoo] failed: ${e.message}`);
@@ -296,6 +335,11 @@ const runStats = { collected: null, inScope: null, stale: null, aiRejected: 0 };
     const siteLinks = new Set();
 
     for (const kw of JOB_KEYWORDS) {
+      (await fetchWadhefa(kw)).forEach(l => siteLinks.add(l));
+    }
+    // wadhefa تنشر إعلانات الجهات والتجنيد وفتح القبول — نبحث ربع الاستعلامات
+    // فقط احتراماً لحد معدل الموقع الصغير (باقي التغطية من ياهو والجهات).
+    for (const kw of ADMISSION_QUERIES.slice(0, Math.ceil(ADMISSION_QUERIES.length / 4))) {
       (await fetchWadhefa(kw)).forEach(l => siteLinks.add(l));
     }
     (await fetchEwdifh(2)).forEach(l => siteLinks.add(l));
@@ -439,20 +483,28 @@ const runStats = { collected: null, inScope: null, stale: null, aiRejected: 0 };
 
   // بوابة AI أخيرة: تستبعد اللي عدّى الـregex وهو مو QA برمجيات (جودة إنشاءات/مصانع/ISO).
   // بعد الفلتر الزمني عمداً — عدد أقل من الوظائف = استدعاءات أقل ضد حد المعدل.
-  // برامج الجهات المُراقَبة تتخطّى البوابة: موجّهها يقبل المجالات الأربعة فقط
-  // فكان بيرفض "برنامج تطوير الخريجين" حتماً. ضمانتها أنها من جهة في entities.json
-  // ومسمّاها برنامج صريح — وهذان شرطان تحقّقا قبل الوصول هنا.
+  // تتخطّى البوابة (موجّهها يقبل المجالات الأربعة فقط فكان بيرفضها حتماً):
+  //   • برامج الجهات المُراقَبة — ضمانتها جهة موثّقة + مسمّى برنامج صريح.
+  //   • فتح القبول/التسجيل — ضمانتها مسمّى إعلان صريح أو جهة موثّقة.
+  //   • الوظائف الحكومية — ضمانتها إثبات الـAI من نص الإعلان نفسه.
   const programs = kept.filter(j => j.is_program);
-  const needGate = kept.filter(j => !j.is_program);
+  const admissions = kept.filter(j => j.is_admission);
+  const govJobs = kept.filter(j => j.is_government && !j.is_program && !j.is_admission);
+  const needGate = kept.filter(j => !j.is_program && !j.is_admission && !j.is_government);
 
   let verifiedQa = kept;
   if (ENABLE_AI_QA_GATE && needGate.length) {
     const { kept: aiKept, dropped, aiFailed } = await verifySoftwareQa(needGate);
-    verifiedQa = [...aiKept, ...programs];
+    verifiedQa = [...aiKept, ...programs, ...admissions, ...govJobs];
+    const bypassNote = [
+      programs.length ? `${programs.length} برنامج جهة` : '',
+      admissions.length ? `${admissions.length} فتح قبول/تسجيل` : '',
+      govJobs.length ? `${govJobs.length} وظيفة حكومية` : ''
+    ].filter(Boolean).join(' · ');
     console.log(
       `🤖 بوابة AI (النطاقات الأربعة): ${needGate.length} → ${aiKept.length}` +
       ` (استبعدنا ${dropped.length}${aiFailed ? ' — بعض الدفعات فشلت ومُرّرت بالفلتر النصي' : ''})` +
-      `${programs.length ? ` | ${programs.length} برنامج جهة تخطّى البوابة` : ''}\n`
+      `${bypassNote ? ` | ${bypassNote} تخطّت البوابة` : ''}\n`
     );
     runStats.aiRejected = dropped.length;
     dropped.forEach(j => console.log(`   ⛔ AI رفض: ${j.job_title || j.job_title_ar || j.job_url}`));
@@ -467,12 +519,12 @@ const runStats = { collected: null, inScope: null, stale: null, aiRejected: 0 };
     return;
   }
 
-  /* ---------- 4) أهم الوظائف ---------- */
+  /* ---------- 4) أهم الوظائف + كتابة الرسائل ---------- */
   let importantJobs = [];
   try {
-    // حمولة منحّفة: نرسل الحقول اللي يحتاجها الاختيار فقط، والوصف مقصوص.
-    // بعد إثراء وصف لنكدإن صار كل إعلان يحمل حتى ٤٠٠٠ حرف، فحمولة ٢٨ ألف حرف
-    // كانت تُقصّ عشوائياً في منتصف JSON (فيفشل التحليل) أو يبطؤ الرد حتى المهلة.
+    // حمولة منحّفة: الاختيار + كتابة الوصف، مع وسم نوع الفئة (تقنية · حكومية ·
+    // قبول/تسجيل · برنامج) حتى يكتب الذكاء الاصطناعي بالسياق الصحيح. الوصف
+    // مقصوص بـ800 حرف: كافٍ لتلخيص المسؤوليات، وقصير فلا يفشل تحليل JSON.
     const slim = analyzedJobs.map(j => ({
       job_id: j.job_id,
       job_title: j.job_title,
@@ -481,9 +533,8 @@ const runStats = { collected: null, inScope: null, stale: null, aiRejected: 0 };
       location: j.location,
       job_type: j.job_type,
       salary: j.salary,
-      experience_level: j.experience_level,
-      is_remote: j.is_remote,
-      description: String(j.description || j.description_ar || '').replace(/\s+/g, ' ').slice(0, 300)
+      kind: j.is_admission ? 'admission' : j.is_government ? 'government' : j.is_program ? 'program' : 'tech',
+      description: String(j.description || j.description_ar || '').replace(/\s+/g, ' ').slice(0, 800)
     }));
     const r = await callAI({
       system: AGG_JOB_PROMPT,
@@ -493,8 +544,13 @@ const runStats = { collected: null, inScope: null, stale: null, aiRejected: 0 };
     const parsed = safeJsonParse(r);
     const rawImportant = Array.isArray(parsed.important_jobs) ? parsed.important_jobs : [];
 
-    // لا نثق برابط تكتبه الـ AI يدوياً (لاحظنا حالات ربط رابط وظيفة بعنوان وظيفة ثانية) —
-    // بدل ذلك نطابق source_job_id مع القائمة الأصلية ونجيب الرابط الصحيح مضمون 100%
+    // حوكمة الرسائل — لا نثق بأي *حقيقة* يكتبها الـAI:
+    //   • الرابط · الشركة · الموقع · نوع الدوام · الراتب: من البيانات الأصلية حتماً
+    //     (لا نثق برابط مكتوب يدوياً — حالات ربطت رابط وظيفة بعنوان وظيفة ثانية).
+    //   • المسمّى المنقّى ووصف المسؤوليات: من الـAI لكن بعد تنقية صارمة، وأي
+    //     حقل فاضي/تالف يقع على بيانات المصدر أو قالب محلي حتمي.
+    //   • الوسم (📌 الأمن السيبراني · 🏛️ وظيفة حكومية · 📢 فتح قبول وتسجيل):
+    //     يُشتق محلياً من بيانات الوظيفة لا من الـAI — لا يُخترع أبداً.
     const byId = new Map(analyzedJobs.map(j => [j.job_id, j]));
     importantJobs = rawImportant
       .map((it, i) => {
@@ -503,8 +559,21 @@ const runStats = { collected: null, inScope: null, stale: null, aiRejected: 0 };
           console.warn(`⚠️ important_jobs: source_job_id ${it.source_job_id} not found, dropping "${it.important_title}"`);
           return null;
         }
-        // نفضّل رابط التقديم المباشر للمنصة (apply_url)؛ رابط إعلان ewdifh بديل فقط
-        return { ...it, important_job_id: i + 1, important_url: orig.apply_url || orig.job_url, source_url: orig.job_url };
+        const cat = categoryForJob(orig) || { emoji: '📌', label: 'فرصة وظيفية' };
+        return {
+          source_job_id: orig.job_id,
+          important_job_id: i + 1,
+          important_title: cleanWritten(it.important_title) || orig.job_title || orig.job_title_ar || '',
+          important_company: orig.company || '',
+          important_location: orig.location_ar || orig.location || '',
+          important_job_type: orig.job_type || (orig.is_remote ? 'عن بعد' : ''),
+          important_salary: orig.salary || '',
+          important_description_ar: cleanWritten(it.important_description_ar) || fallbackDescriptionFor(orig),
+          category_emoji: cat.emoji,
+          category_label_ar: cat.label,
+          important_url: orig.apply_url || orig.job_url,
+          source_url: orig.job_url
+        };
       })
       .filter(Boolean)
       .slice(0, 10);
@@ -643,7 +712,11 @@ function apiToSchema(j, id) {
     posted_date: j.posted_date,
     application_deadline: j.valid_through || 'unknown',
     is_saudi_based: /saudi|riyadh|jeddah|dammam|السعودية|الرياض/i.test(`${j.location}`),
-    is_remote: j.is_remote
+    is_remote: j.is_remote,
+    // إثبات حكومي من المصدر نفسه (نادر في مسار API — يثبته الـAI من نص الإعلان)
+    is_government: j.is_government === true,
+    entity: j.entity || '',
+    entity_type: j.entity_type || ''
   };
 }
 
@@ -852,6 +925,21 @@ function sleep(ms) { return new Promise(resolve => setTimeout(resolve, ms)); }
 function rand(min, max) { return Math.floor(Math.random() * (max - min + 1)) + min; }
 function slug(s) { return String(s).toLowerCase().replace(/[^\p{L}\p{N}]+/gu, '-').replace(/^-+|-+$/g, ''); }
 
+/* ---------- تنقية نصوص الـAI (حوكمة الرسائل) ---------- */
+// نزع Markdown وHTML وأسطر التعليمات المتبقية، ورفض القيم الحشوية اللي يكتبها
+// الـAI أحياناً بدل الإجابة ("غير محدد" · "لا يوجد" · "N/A").
+const JUNK_VALUES = /^(غير محدد|لا يوجد|لا شيء|n\/?a|none|null|غير متوفر|غير متاح|—|-|\.{1,})$/i;
+
+function cleanWritten(text) {
+  const s = String(text || '')
+    .replace(/<[^>]+>/g, ' ')                      // HTML
+    .replace(/[*_`>#]+/g, '')                      // Markdown
+    .replace(/\s+/g, ' ')
+    .trim();
+  if (!s || JUNK_VALUES.test(s)) return '';
+  return s;
+}
+
 /* ===================== PROMPTS ===================== */
 const JOB_EXTRACT_PROMPT = `
 You are an expert job extraction analyst.
@@ -897,43 +985,79 @@ the quality/testing work targets software, set it false.
 `;
 
 const AGG_JOB_PROMPT = `
-You are a senior recruitment consultant. All jobs in the input are already confirmed to be based in Saudi Arabia (any region/city) and pre-filtered to FOUR technology domains only:
-1. SOFTWARE QA / QC — testing of software: web apps, websites, mobile apps, APIs, backend systems (QA Engineer, QA Analyst, SDET, Software Tester, Test Automation Engineer).
-2. DEVOPS / SRE / PLATFORM — DevOps, DevSecOps, Site Reliability, Platform/Infrastructure engineering, CI/CD, Kubernetes, Docker, Terraform.
-3. CLOUD — cloud engineering, architecture, administration or consulting on AWS, Azure, GCP.
-4. CYBER SECURITY (offensive and defensive) — security engineering/analysis/architecture, SOC, penetration testing, red/blue/purple team, ethical hacking, vulnerability management, threat hunting, incident response, DFIR, malware analysis, application/cloud security, IAM, SIEM/SOAR, security GRC.
+You are an elite Arabic recruitment editor writing for a premium Saudi jobs channel.
+All jobs in the input are already confirmed to be based in Saudi Arabia and belong to
+one of these ACCEPTED categories:
 
-If any job in the input falls OUTSIDE these four domains — civil or construction QA-QC, site or field inspection, manufacturing / factory / oil & gas quality, food or pharmaceutical or laboratory quality, HSE, ISO 9001 / QMS corporate quality, PHYSICAL security (guards, patrols, CCTV, fire safety), or unrelated roles such as pure developer, data, AI, PR, media or sales — DO NOT select it, even if nothing else is left. It slipped through the filter by mistake.
+1. SOFTWARE QA / QC — testing of software: web apps, websites, mobile apps, APIs,
+   backend systems (QA Engineer, QA Analyst, SDET, Software Tester, Test Automation).
+2. DEVOPS / SRE / PLATFORM — DevOps, DevSecOps, Site Reliability, Platform or
+   Infrastructure engineering, CI/CD, Kubernetes, Docker, Terraform, observability.
+3. CLOUD — cloud engineering, architecture, administration or consulting (AWS, Azure, GCP).
+4. CYBER SECURITY (offensive and defensive) — security engineering/analysis/architecture,
+   SOC, penetration testing, red/blue/purple team, threat hunting, incident response,
+   DFIR, malware analysis, application/cloud security, IAM, SIEM/SOAR, security GRC.
+5. GOVERNMENT JOB (kind="government") — an official government position, accepted as a
+   deliberate exception to the four domains. Select it normally.
+6. ADMISSION / REGISTRATION OPENING (kind="admission") — university admission
+   (bachelor, diploma, bridging, master), scholarships, Tamheer, military or civilian
+   recruitment campaigns. This is a campaign announcement, NOT a single job.
+7. ENTITY PROGRAM (kind="program") — graduate/training/scholarship programs from
+   semi-government entities.
 
-The employer's industry does NOT disqualify a job: a DevOps, cloud or cyber-security role at an oil, construction or manufacturing company is perfectly valid. Judge the ROLE, not the company.
+If any job in the input falls OUTSIDE these categories — civil or construction QA-QC,
+site or field inspection, manufacturing / factory / oil & gas quality, food or
+pharmaceutical or laboratory quality, HSE, ISO 9001 / QMS corporate quality, PHYSICAL
+security (guards, patrols, CCTV, fire safety), or unrelated roles such as pure
+developer, data, AI, PR, media or sales — DO NOT select it, even if nothing else is
+left. It slipped through the filter by mistake.
 
-Select up to 10 most important/attractive jobs from the given Jobs array.
+The employer's industry does NOT disqualify a job: a DevOps, cloud or cyber-security
+role at an oil, construction or manufacturing company is perfectly valid. Judge the
+ROLE, not the company.
 
-Prioritize:
-- Senior/lead roles over entry level
-- Competitive salaries
-- Reputable companies/entities (government or private)
-- Automation-focused roles (SDET, test automation) over purely manual testing
-- Try to represent different Saudi cities/regions when quality allows (not only Riyadh)
+TASKS:
+1) Select up to 10 most important jobs: prioritize senior/lead roles, competitive
+   salaries, reputable employers, automation-focused QA, and a healthy mix of Saudi
+   cities. Give admission/government/program items their fair share — do not drown
+   them with tech roles and do not over-select them either.
+2) For EACH selected job write two fields in excellent Modern Standard Arabic:
 
-IMPORTANT: "source_job_id" MUST be the exact integer "job_id" of the job you picked from the input array. Do NOT invent or copy any URL yourself — the URL will be looked up programmatically from source_job_id.
+   "important_title": the original job title, cleaned only — fix garbled characters
+   and remove formatting; do NOT translate it, do NOT expand it, do NOT add the company.
+
+   "important_description_ar": 2 to 3 short sentences (aim ~180-260 characters total)
+   describing the job's RESPONSIBILITIES AND TASKS in professional, concise, clear
+   Arabic. STRICT GOVERNANCE RULES:
+     • If the input has a description: summarize its responsibilities faithfully —
+       never add claims the input does not support.
+     • If the input has NO description: derive typical responsibilities from the
+       title and its category, staying general and safe. Never invent company names,
+       salaries, deadlines, requirements, or any specific claim.
+     • For kind="admission": state what is opening (the organization, the program or
+       level, military/civilian), and that applications are submitted through the
+       attached link. Never invent dates, conditions or specializations.
+     • For kind="government": describe the typical duties of that position.
+     • NO fluff, NO marketing ("فرصة ذهبية", "انضم إلينا"), NO emojis, NO markdown,
+       NO bullet lists, NO URLs, NO phone numbers, NO quotation marks.
+     • Do not start by repeating the job title.
+     • Do not write placeholders like "غير محدد" or "لا يوجد وصف".
+     • One paragraph of 2-3 sentences only.
 
 OUTPUT
 ------
-Return STRICTLY this structure—no markdown, no extra keys:
+Return STRICTLY this structure — no markdown, no extra keys:
 {
   "important_jobs": [
     {
       "source_job_id": 0,
-      "important_title": "<English job title>",
-      "important_title_ar": "<عنوان الوظيفة بالعربية>",
-      "important_company": "<company>",
-      "important_location": "<location>",
-      "important_job_type": "<job_type from input, else 'غير محدد'>",
-      "important_salary": "<salary from input, else 'غير محدد'>",
-      "important_description_ar": "<وصف بالعربية، جملتين>",
-      "why_important": "<برّر الاختيار بإيجاز بالعربية>"
+      "important_title": "<original title, cleaned>",
+      "important_description_ar": "<2-3 sentences of responsibilities in Arabic>"
     }
   ]
 }
+
+"source_job_id" MUST be the exact integer "job_id" of the job you picked from the
+input array. Do NOT invent or copy any URL, company, location or salary — those are
+looked up programmatically and your versions will be ignored.
 `;
